@@ -5,13 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import streakflix.model.FriendRequest;
 import streakflix.model.User;
 import streakflix.service.StreakFlixService;
+import streakflix.util.JwtUtil;
 
 
 import java.util.Optional;
@@ -24,12 +22,17 @@ public class StreakFlixController {
 
     @Autowired
     StreakFlixService service;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User input) {
         log.info("User {} attempting to login", input.getUsername());
         Optional<User> userDetails;
         try {
             userDetails = service.login(input.getUsername(), input.getPassword());
+            userDetails.ifPresent(user -> user.setAuthorizationToken(jwtUtil.generateToken(input.getUsername())));
         } catch (Exception e) {
             log.error("Error while logging in user {}", input.getUsername());
             return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
@@ -52,10 +55,16 @@ public class StreakFlixController {
     }
 
     @PostMapping("/friendRequest")
-    public ResponseEntity<?> friendRequest(@RequestBody FriendRequest friendRequest) {
+    public ResponseEntity<?> friendRequest(@RequestBody FriendRequest friendRequest,@RequestHeader("Authorization") String authorizationHeader) {
         log.info("User {} got friend request", friendRequest.getExistingUsername());
         try {
-            service.sendFriendRequest(friendRequest);
+            String token = authorizationHeader.replace("Bearer ", "");
+            String username = jwtUtil.extractUsername(token);
+            if (jwtUtil.validateToken(token, username)) {
+                service.sendFriendRequest(friendRequest);
+            }else{
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
         } catch (Exception e) {
             log.error("Error while sending friend request {}", friendRequest.getExistingUsername());
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -65,10 +74,17 @@ public class StreakFlixController {
     }
 
     @PostMapping("/friendAccept")
-    public ResponseEntity<?> friendAccept(@RequestBody FriendRequest friendRequest) {
+    public ResponseEntity<?> friendAccept(@RequestBody FriendRequest friendRequest,@RequestHeader("Authorization") String authorizationHeader) {
         log.info("User {} is accepting a friend request", friendRequest.getExistingUsername());
         try {
-            service.acceptFriendRequest(friendRequest);
+            String token = authorizationHeader.replace("Bearer ", "");
+            String username = jwtUtil.extractUsername(token);
+            if (jwtUtil.validateToken(token, username)) {
+                service.acceptFriendRequest(friendRequest);
+            }else{
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+
         } catch (Exception e) {
             log.error("Error while accepting friend request {}", friendRequest.getExistingUsername());
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
