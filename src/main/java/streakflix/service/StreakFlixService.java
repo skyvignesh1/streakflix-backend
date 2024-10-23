@@ -72,6 +72,11 @@ public class StreakFlixService {
             throw new Exception("User already exists");
         } else {
             userRepository.save(user);
+
+            Streak streak = new Streak();
+            streak.setUsername(user.getUsername());
+            streak.setStreak("0");
+            streakRepository.save(streak);
             log.info("User {} has been created", user.getUsername());
         }
     }
