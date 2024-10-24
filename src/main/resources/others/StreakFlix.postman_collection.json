@@ -1,0 +1,147 @@
+{
+	"info": {
+		"_postman_id": "7e03b63d-6f82-44d9-a9a1-1ac1094f1f50",
+		"name": "StreakFlix",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "34023589",
+		"_collection_link": "https://sky-integration-5375.postman.co/workspace/Sky-Integration-Workspace~5f630592-1107-45e5-9c71-a59fe6ae121c/collection/34023589-7e03b63d-6f82-44d9-a9a1-1ac1094f1f50?action=share&source=collection_link&creator=34023589"
+	},
+	"item": [
+		{
+			"name": "SignUp",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"aiswarya\",\r\n    \"password\" :\"admin\",\r\n    \"email\": \"aiswarya@comcast.com\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/signup",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"signup"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"aishu\",\r\n    \"password\" :\"admin\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "FriendRequest",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhaXNodSIsImlhdCI6MTcyOTc4MDI5MCwiZXhwIjoxNzI5ODE2MjkwfQ.-xuvLcqqjaFMr24XpE-KS9KKtA5CDzjnKSX2RGa0Ssc",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"existingUsername\": \"vignesh\",\r\n    \"friendUsername\" :\"aishu\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/friendRequest",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"friendRequest"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "FriendAccept",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhaXNodSIsImlhdCI6MTcyOTc4MDI5MCwiZXhwIjoxNzI5ODE2MjkwfQ.-xuvLcqqjaFMr24XpE-KS9KKtA5CDzjnKSX2RGa0Ssc",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "\r\n{\r\n    \"existingUsername\": \"aishu\",\r\n    \"friendUsername\" :\"vignesh\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/friendAccept",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"friendAccept"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
