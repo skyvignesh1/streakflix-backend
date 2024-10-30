@@ -171,4 +171,19 @@ public class StreakFlixController {
         }
     }
 
+    @GetMapping("/listAllPendingRequests")
+    public ResponseEntity<?> listAllPendingRequests(@RequestHeader("Authorization") String authorizationHeader){
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            String username = jwtUtil.extractUsername(token);
+            if (jwtUtil.validateToken(token, username)) {
+                return new ResponseEntity<>(service.listAllPendingRequests(username), HttpStatus.OK);
+            }else{
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
 }

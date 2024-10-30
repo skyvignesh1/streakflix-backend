@@ -198,6 +198,10 @@ public class StreakFlixService {
     public List<FriendList> listAllFriendRequests(String username){
         return listFriends(username, "REQUEST_RECEIVED");
     }
+    public List<FriendList> listAllPendingRequests(String username){
+        return listFriends(username, "REQUEST_SENT");
+    }
+
 
     public List<FriendList> listAllFriends(String username){
         return listFriends(username, "ACCEPTED");
