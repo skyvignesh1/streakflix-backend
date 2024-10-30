@@ -173,15 +173,17 @@ public class StreakFlixService {
         var res = userRepository.findMatchingUsers(username).stream().limit(10).map(user -> {
 
             boolean found = false;
-            for(FriendList u : currUser.getFriendList()){
-                if(user.getUsername().equalsIgnoreCase(u.getUsername())) {
-                    found = true;
-                    if (u.getStatus().equalsIgnoreCase("ACCEPTED"))
-                        user.setStatus("FRIEND");
-                    else if (u.getStatus().equalsIgnoreCase("REQUEST_SENT"))
-                        user.setStatus("REQUESTED");
+            if(currUser.getFriendList() != null){
+                for(FriendList u : currUser.getFriendList()){
+                    if(user.getUsername().equalsIgnoreCase(u.getUsername())) {
+                        found = true;
+                        if (u.getStatus().equalsIgnoreCase("ACCEPTED"))
+                            user.setStatus("FRIEND");
+                        else if (u.getStatus().equalsIgnoreCase("REQUEST_SENT"))
+                            user.setStatus("REQUESTED");
 
-                    break;
+                        break;
+                    }
                 }
             }
             if (!found)
