@@ -223,7 +223,7 @@ public class StreakFlixService {
         });
 
 
-        return user.getFriendList();
+        return friends;
     }
 
 }
