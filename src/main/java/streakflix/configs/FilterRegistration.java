@@ -9,15 +9,18 @@ import streakflix.filters.CorsFilter;
 @Configuration
 public class FilterRegistration {
 
+    private final CorsFilter corsFilter;
     @Autowired
-    private CorsFilter securityFilter;
+    public FilterRegistration(CorsFilter corsFilter) {
+        this.corsFilter = corsFilter;
+    }
 
     @Bean
     public FilterRegistrationBean<CorsFilter> loggingFilter(){
         FilterRegistrationBean<CorsFilter> registrationBean
                 = new FilterRegistrationBean<>();
 
-        registrationBean.setFilter(securityFilter);
+        registrationBean.setFilter(corsFilter);
         registrationBean.addUrlPatterns("/api/*");
         registrationBean.setOrder(2);
 

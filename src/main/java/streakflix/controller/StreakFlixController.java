@@ -119,7 +119,6 @@ public class StreakFlixController {
             if (jwtUtil.validateToken(token, username)) {
                 return new ResponseEntity<>(service.getUserDetailsByUsername(username), HttpStatus.OK);
             }else{
-                log.error("auth failed");
                 return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
@@ -133,9 +132,8 @@ public class StreakFlixController {
             String token = authorizationHeader.replace("Bearer ", "");
             String username = jwtUtil.extractUsername(token);
             if (jwtUtil.validateToken(token, username)) {
-                return new ResponseEntity<>(service.getUserDetailsByUsername(name), HttpStatus.OK);
+                return new ResponseEntity<>(service.findMatchingUsers(name), HttpStatus.OK);
             }else{
-                log.error("auth failed");
                 return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
@@ -143,5 +141,34 @@ public class StreakFlixController {
         }
     }
 
+    @GetMapping("/listAllFriends")
+    public ResponseEntity<?> listAllFriends(@RequestHeader("Authorization") String authorizationHeader){
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            String username = jwtUtil.extractUsername(token);
+            if (jwtUtil.validateToken(token, username)) {
+                return new ResponseEntity<>(service.listAllFriends(username), HttpStatus.OK);
+            }else{
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @GetMapping("/listAllFriendRequests")
+    public ResponseEntity<?> listAllFriendRequests(@RequestHeader("Authorization") String authorizationHeader){
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            String username = jwtUtil.extractUsername(token);
+            if (jwtUtil.validateToken(token, username)) {
+                return new ResponseEntity<>(service.listAllFriendRequests(username), HttpStatus.OK);
+            }else{
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
 
 }

@@ -166,4 +166,41 @@ public class StreakFlixService {
             throw new Exception("No user found");
         }
     }
+
+    public List<User> findMatchingUsers(String username){
+        return userRepository.findMatchingUsers(username);
+    }
+
+    public List<FriendList> listAllFriendRequests(String username){
+        return listFriends(username, "REQUEST_RECEIVED");
+    }
+
+    public List<FriendList> listAllFriends(String username){
+        return listFriends(username, "ACCEPTED");
+    }
+    private List<FriendList> listFriends(String username, String status){
+
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("No user found") );
+        List<FriendList> friends = user.getFriendList().stream()
+                .filter(friendList -> friendList.getStatus().equalsIgnoreCase(status))
+                .toList();
+
+        if(friends.isEmpty())
+            return new ArrayList<>();
+
+        var friendListNames = friends.stream().map(FriendList::getUsername).toList();
+        List<Streak> friendStreaks = streakRepository.findByUsernameIn(friendListNames);
+
+        if (user.getFriendList() != null) {
+            user.getFriendList().forEach(friend -> {
+                friendStreaks.stream()
+                        .filter(streakObj -> streakObj.getUsername().equals(friend.getUsername()))
+                        .findFirst()
+                        .ifPresent(streakObj -> friend.setStreak(streakObj.getStreak()));
+            });
+        }
+
+        return user.getFriendList();
+    }
+
 }
