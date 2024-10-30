@@ -171,16 +171,22 @@ public class StreakFlixService {
 
         User currUser = userRepository.findByUsername(currentUser).orElseThrow(()->new RuntimeException("No user found"));
         var res = userRepository.findMatchingUsers(username).stream().limit(10).map(user -> {
+
+            boolean found = false;
             for(FriendList u : currUser.getFriendList()){
-                if(user.getUsername().equalsIgnoreCase(u.getUsername())){
-                    if(u.getStatus().equalsIgnoreCase("ACCEPTED"))
+                if(user.getUsername().equalsIgnoreCase(u.getUsername())) {
+                    found = true;
+                    if (u.getStatus().equalsIgnoreCase("ACCEPTED"))
                         user.setStatus("FRIEND");
-                    else if(u.getStatus().equalsIgnoreCase("REQUEST_RECEIVED"))
+                    else if (u.getStatus().equalsIgnoreCase("REQUEST_SENT"))
                         user.setStatus("REQUESTED");
-                    else
-                        user.setStatus("NOT_FRIEND");
+
+                    break;
                 }
             }
+            if (!found)
+                user.setStatus("NOT_FRIEND");
+
             return user;
         });
 
@@ -207,14 +213,13 @@ public class StreakFlixService {
         var friendListNames = friends.stream().map(FriendList::getUsername).toList();
         List<Streak> friendStreaks = streakRepository.findByUsernameIn(friendListNames);
 
-        if (user.getFriendList() != null) {
-            user.getFriendList().forEach(friend -> {
-                friendStreaks.stream()
-                        .filter(streakObj -> streakObj.getUsername().equals(friend.getUsername()))
-                        .findFirst()
-                        .ifPresent(streakObj -> friend.setStreak(streakObj.getStreak()));
-            });
-        }
+        friends.forEach(friend -> {
+            friendStreaks.stream()
+                    .filter(streakObj -> streakObj.getUsername().equals(friend.getUsername()))
+                    .findFirst()
+                    .ifPresent(streakObj -> friend.setStreak(streakObj.getStreak()));
+        });
+
 
         return user.getFriendList();
     }
