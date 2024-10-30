@@ -132,7 +132,7 @@ public class StreakFlixController {
             String token = authorizationHeader.replace("Bearer ", "");
             String username = jwtUtil.extractUsername(token);
             if (jwtUtil.validateToken(token, username)) {
-                return new ResponseEntity<>(service.findMatchingUsers(name), HttpStatus.OK);
+                return new ResponseEntity<>(service.findMatchingUsers(username, name), HttpStatus.OK);
             }else{
                 return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
             }

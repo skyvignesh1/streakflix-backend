@@ -24,4 +24,6 @@ public class User {
     private String authorizationToken;
     private String todayWatchedMinutes;
 
+    private String status;
+
 }
