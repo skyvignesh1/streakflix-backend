@@ -22,5 +22,6 @@ public class User {
     private String streak;
     private List<FriendList> friendList;
     private String authorizationToken;
+    private String todayWatchedMinutes;
 
 }

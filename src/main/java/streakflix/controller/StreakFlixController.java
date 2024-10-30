@@ -17,7 +17,7 @@ import java.util.Optional;
 @Slf4j
 @RestController
 @RequestMapping("/api")
-//@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "http://localhost:3000")
 public class StreakFlixController {
 
     @Autowired
@@ -92,5 +92,56 @@ public class StreakFlixController {
         }
         return new ResponseEntity<>("Friend Request has been accepted", HttpStatus.OK);
     }
+
+    @PostMapping("/updateTodayWatchedMinutes")
+    public ResponseEntity<?> updateTodayWatchedMinutes(@RequestBody User user, @RequestHeader("Authorization") String authorizationHeader){
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            String username = jwtUtil.extractUsername(token);
+            if (jwtUtil.validateToken(token, username)) {
+                service.updateTodayWatchedMinutes(user, username);
+            }else{
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/validateToken")
+    public ResponseEntity<?> validateToken(@RequestHeader("Authorization") String authorizationHeader){
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            String username = jwtUtil.extractUsername(token);
+            if (jwtUtil.validateToken(token, username)) {
+                return new ResponseEntity<>(service.getUserDetailsByUsername(username), HttpStatus.OK);
+            }else{
+                log.error("auth failed");
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @GetMapping("/searchFriends")
+    public ResponseEntity<?> searchFriends(@RequestParam("name") String name, @RequestHeader("Authorization") String authorizationHeader){
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            String username = jwtUtil.extractUsername(token);
+            if (jwtUtil.validateToken(token, username)) {
+                return new ResponseEntity<>(service.getUserDetailsByUsername(name), HttpStatus.OK);
+            }else{
+                log.error("auth failed");
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
 
 }

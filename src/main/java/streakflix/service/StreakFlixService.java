@@ -2,6 +2,7 @@ package streakflix.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import streakflix.model.FriendList;
 import streakflix.model.FriendRequest;
@@ -124,5 +125,45 @@ public class StreakFlixService {
         newFriendEntry.setStatus("ACCEPTED");
         userRepository.save(friendUser);
 
+    }
+
+    public void updateTodayWatchedMinutes(User user, String userName) throws Exception {
+
+        var user1 = userRepository.findByUsername(userName)
+                .orElseThrow(() -> new Exception("User is not found"));
+
+        user1.setTodayWatchedMinutes(user.getTodayWatchedMinutes());
+        userRepository.save(user1);
+    }
+
+    public User getUserDetailsByUsername(String userName) throws Exception {
+        Optional<User> user = userRepository.findByUsername(userName);
+        if (user.isPresent()) {
+                List<String> friendUsernames = Stream.of(user.get().getUsername()).collect(Collectors.toList());
+                if (user.get().getFriendList() != null) {
+                    friendUsernames.addAll(user.get().getFriendList().stream()
+                            .map(FriendList::getUsername)
+                            .collect(Collectors.toList()));
+                }
+
+                List<Streak> friendStreaks = streakRepository.findByUsernameIn(friendUsernames);
+                if (user.get().getFriendList() != null) {
+                    user.get().getFriendList().forEach(friend -> {
+                        friendStreaks.stream()
+                                .filter(streakObj -> streakObj.getUsername().equals(friend.getUsername()))
+                                .findFirst()
+                                .ifPresent(streakObj -> friend.setStreak(streakObj.getStreak()));
+                    });
+                }
+
+                friendStreaks.stream()
+                        .filter(streakObj -> streakObj.getUsername().equals(user.get().getUsername()))
+                        .findFirst()
+                        .ifPresent(streakObj -> user.get().setStreak(String.valueOf(streakObj.getStreak())));
+
+                return user.get();
+        }else{
+            throw new Exception("No user found");
+        }
     }
 }

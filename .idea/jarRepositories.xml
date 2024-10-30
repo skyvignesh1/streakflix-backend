@@ -7,6 +7,11 @@
       <option name="url" value="https://repo.maven.apache.org/maven2" />
     </remote-repository>
     <remote-repository>
+      <option name="id" value="sky-hermes-releases" />
+      <option name="name" value="sky-hermes-releases" />
+      <option name="url" value="https://sky-hermes-136026480493.d.codeartifact.eu-west-1.amazonaws.com/maven/releases" />
+    </remote-repository>
+    <remote-repository>
       <option name="id" value="Maven Central" />
       <option name="name" value="Maven Central" />
       <option name="url" value="https://repo.maven.apache.org/maven2/" />
