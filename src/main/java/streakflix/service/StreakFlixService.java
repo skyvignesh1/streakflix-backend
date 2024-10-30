@@ -170,26 +170,26 @@ public class StreakFlixService {
     public List<User> findMatchingUsers(String currentUser, String username){
 
         User currUser = userRepository.findByUsername(currentUser).orElseThrow(()->new RuntimeException("No user found"));
-        var res = userRepository.findMatchingUsers(username).stream().limit(10).map(user -> {
+        var res = userRepository.findMatchingUsers(username).stream()
+                .limit(10)
+                .filter(user -> !user.getUsername().equalsIgnoreCase(currUser.getUsername()))
+                .map(user -> {
+                        boolean found = false;
+                        if(currUser.getFriendList() != null){
 
-            boolean found = false;
-            if(currUser.getFriendList() != null){
-                for(FriendList u : currUser.getFriendList()){
-                    if(user.getUsername().equalsIgnoreCase(u.getUsername())) {
-                        found = true;
-                        if (u.getStatus().equalsIgnoreCase("ACCEPTED"))
-                            user.setStatus("FRIEND");
-                        else if (u.getStatus().equalsIgnoreCase("REQUEST_SENT"))
-                            user.setStatus("REQUESTED");
-
-                        break;
-                    }
-                }
-            }
-            if (!found)
-                user.setStatus("NOT_FRIEND");
-
-            return user;
+                            for(FriendList u : currUser.getFriendList()){
+                                if(user.getUsername().equalsIgnoreCase(u.getUsername())) {
+                                    found = true;
+                                    if (u.getStatus().equalsIgnoreCase("ACCEPTED"))
+                                        user.setStatus("FRIEND");
+                                    else if (u.getStatus().equalsIgnoreCase("REQUEST_SENT"))
+                                        user.setStatus("REQUESTED");
+                                    break;
+                                }
+                            }
+                        }
+                        if (!found) user.setStatus("NOT_FRIEND");
+                        return user;
         });
 
         return res.toList();
