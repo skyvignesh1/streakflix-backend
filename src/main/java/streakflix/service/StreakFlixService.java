@@ -72,6 +72,7 @@ public class StreakFlixService {
             log.error("User {} already exists", user.getUsername());
             throw new Exception("User already exists");
         } else {
+            user.setTodayWatchedMinutes("0");
             userRepository.save(user);
 
             Streak streak = new Streak();
@@ -173,10 +174,11 @@ public class StreakFlixService {
         var res = userRepository.findMatchingUsers(username).stream()
                 .limit(10)
                 .filter(user -> !user.getUsername().equalsIgnoreCase(currUser.getUsername()))
-                .map(user -> {
+                .peek(user -> {
+                        Streak streak = streakRepository.findByUsername(user.getUsername()).orElseThrow();
+                        user.setStreak(streak.getStreak());
                         boolean found = false;
                         if(currUser.getFriendList() != null){
-
                             for(FriendList u : currUser.getFriendList()){
                                 if(user.getUsername().equalsIgnoreCase(u.getUsername())) {
                                     found = true;
@@ -189,8 +191,7 @@ public class StreakFlixService {
                             }
                         }
                         if (!found) user.setStatus("NOT_FRIEND");
-                        return user;
-        });
+                });
 
         return res.toList();
     }
