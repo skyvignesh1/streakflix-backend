@@ -17,7 +17,6 @@ import java.util.Optional;
 @Slf4j
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:3000")
 public class StreakFlixController {
 
     @Autowired
@@ -94,94 +93,129 @@ public class StreakFlixController {
     }
 
     @PostMapping("/updateTodayWatchedMinutes")
-    public ResponseEntity<?> updateTodayWatchedMinutes(@RequestBody User user, @RequestHeader("Authorization") String authorizationHeader){
+    public ResponseEntity<?> updateTodayWatchedMinutes(@RequestBody User user, @RequestHeader("Authorization") String authorizationHeader) {
+        log.info("Received request to update today's watched minutes for user: {}", user.getUsername());
         try {
             String token = authorizationHeader.replace("Bearer ", "");
+            log.debug("Extracted token: {}", token);
             String username = jwtUtil.extractUsername(token);
+            log.debug("Extracted username from token: {}", username);
             if (jwtUtil.validateToken(token, username)) {
+                log.info("Token is valid for username: {}", username);
                 service.updateTodayWatchedMinutes(user, username);
-            }else{
+                log.info("Updated today's watched minutes for user: {}", username);
+            } else {
+                log.warn("Invalid session for token: {}", token);
                 return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
             }
-
         } catch (Exception e) {
+            log.error("Exception occurred while updating today's watched minutes", e);
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PostMapping("/validateToken")
-    public ResponseEntity<?> validateToken(@RequestHeader("Authorization") String authorizationHeader){
+    public ResponseEntity<?> validateToken(@RequestHeader("Authorization") String authorizationHeader) {
+        log.info("Received request to validate token");
         try {
             String token = authorizationHeader.replace("Bearer ", "");
+            log.debug("Extracted token: {}", token);
             String username = jwtUtil.extractUsername(token);
+            log.debug("Extracted username from token: {}", username);
             if (jwtUtil.validateToken(token, username)) {
+                log.info("Token is valid for username: {}", username);
                 return new ResponseEntity<>(service.getUserDetailsByUsername(username), HttpStatus.OK);
-            }else{
+            } else {
+                log.warn("Invalid session for token: {}", token);
                 return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
+            log.error("Exception occurred while validating token", e);
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
     @GetMapping("/searchFriends")
-    public ResponseEntity<?> searchFriends(@RequestParam("name") String name, @RequestHeader("Authorization") String authorizationHeader){
+    public ResponseEntity<?> searchFriends(@RequestParam("name") String name, @RequestHeader("Authorization") String authorizationHeader) {
+        log.info("Received request to search friends with name: {}", name);
         try {
             String token = authorizationHeader.replace("Bearer ", "");
+            log.debug("Extracted token: {}", token);
             String username = jwtUtil.extractUsername(token);
+            log.debug("Extracted username from token: {}", username);
             if (jwtUtil.validateToken(token, username)) {
+                log.info("Token is valid for username: {}", username);
                 return new ResponseEntity<>(service.findMatchingUsers(username, name), HttpStatus.OK);
-            }else{
+            } else {
+                log.warn("Invalid session for token: {}", token);
                 return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
+            log.error("Exception occurred while searching friends", e);
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
     @GetMapping("/listAllFriends")
-    public ResponseEntity<?> listAllFriends(@RequestHeader("Authorization") String authorizationHeader){
+    public ResponseEntity<?> listAllFriends(@RequestHeader("Authorization") String authorizationHeader) {
+        log.info("Received request to list all friends");
         try {
             String token = authorizationHeader.replace("Bearer ", "");
+            log.debug("Extracted token: {}", token);
             String username = jwtUtil.extractUsername(token);
+            log.debug("Extracted username from token: {}", username);
             if (jwtUtil.validateToken(token, username)) {
+                log.info("Token is valid for username: {}", username);
                 return new ResponseEntity<>(service.listAllFriends(username), HttpStatus.OK);
-            }else{
+            } else {
+                log.warn("Invalid session for token: {}", token);
                 return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
+            log.error("Exception occurred while listing all friends", e);
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
     @GetMapping("/listAllFriendRequests")
-    public ResponseEntity<?> listAllFriendRequests(@RequestHeader("Authorization") String authorizationHeader){
+    public ResponseEntity<?> listAllFriendRequests(@RequestHeader("Authorization") String authorizationHeader) {
+        log.info("Received request to list all friend requests");
         try {
             String token = authorizationHeader.replace("Bearer ", "");
+            log.debug("Extracted token: {}", token);
             String username = jwtUtil.extractUsername(token);
+            log.debug("Extracted username from token: {}", username);
             if (jwtUtil.validateToken(token, username)) {
+                log.info("Token is valid for username: {}", username);
                 return new ResponseEntity<>(service.listAllFriendRequests(username), HttpStatus.OK);
-            }else{
+            } else {
+                log.warn("Invalid session for token: {}", token);
                 return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
+            log.error("Exception occurred while listing all friend requests", e);
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
     @GetMapping("/listAllPendingRequests")
-    public ResponseEntity<?> listAllPendingRequests(@RequestHeader("Authorization") String authorizationHeader){
+    public ResponseEntity<?> listAllPendingRequests(@RequestHeader("Authorization") String authorizationHeader) {
+        log.info("Received request to list all pending requests");
         try {
             String token = authorizationHeader.replace("Bearer ", "");
+            log.debug("Extracted token: {}", token);
             String username = jwtUtil.extractUsername(token);
+            log.debug("Extracted username from token: {}", username);
             if (jwtUtil.validateToken(token, username)) {
+                log.info("Token is valid for username: {}", username);
                 return new ResponseEntity<>(service.listAllPendingRequests(username), HttpStatus.OK);
-            }else{
+            } else {
+                log.warn("Invalid session for token: {}", token);
                 return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
+            log.error("Exception occurred while listing all pending requests", e);
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }

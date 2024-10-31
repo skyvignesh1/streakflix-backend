@@ -130,13 +130,13 @@ public class StreakFlixService {
 
     }
 
-    public void updateTodayWatchedMinutes(User user, String userName) throws Exception {
+    public void updateTodayWatchedMinutes(User reqUser, String userName) throws Exception {
 
-        var user1 = userRepository.findByUsername(userName)
+        var user = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new Exception("User is not found"));
 
-        user1.setTodayWatchedMinutes(user.getTodayWatchedMinutes());
-        userRepository.save(user1);
+        user.setTodayWatchedMinutes(reqUser.getTodayWatchedMinutes());
+        userRepository.save(user);
     }
 
     public User getUserDetailsByUsername(String userName) throws Exception {
@@ -170,27 +170,32 @@ public class StreakFlixService {
         }
     }
 
-    public List<User> findMatchingUsers(String currentUser, String searchKeyword){
+    public List<User> findMatchingUsers(String currentUser, String searchKeyword) {
+        User currUser = userRepository.findByUsername(currentUser)
+                .orElseThrow(() -> new RuntimeException("No user found"));
 
-        User currUser = userRepository.findByUsername(currentUser).orElseThrow(()->new RuntimeException("No user found"));
-        var res = userRepository.findMatchingUsers(searchKeyword).stream()
+        return userRepository.findMatchingUsers(searchKeyword).stream()
                 .limit(10)
                 .filter(user -> !user.getUsername().equalsIgnoreCase(currUser.getUsername()))
                 .peek(searchResult -> {
-                        streakRepository.findByUsername(searchResult.getUsername())
-                                .ifPresent(streak -> searchResult.setStreak(streak.getStreak()));
-                        searchResult.setStatus("NOT_FRIEND");
-                        currUser.getFriendList().stream()
-                                .filter(currentUserFriend -> currentUserFriend.getUsername().equalsIgnoreCase(searchResult.getUsername()))
-                                .forEach(currentUserFriend -> {
-                                    if (currentUserFriend.getStatus().equalsIgnoreCase("ACCEPTED"))
-                                        searchResult.setStatus("FRIEND");
-                                    else if (currentUserFriend.getStatus().equalsIgnoreCase("REQUEST_SENT"))
-                                        searchResult.setStatus("REQUESTED");
-                                });
-                });
+                    streakRepository.findByUsername(searchResult.getUsername())
+                            .ifPresent(streak -> searchResult.setStreak(streak.getStreak()));
+                    searchResult.setStatus(getFriendStatus(currUser, searchResult));
+                })
+                .toList();
+    }
 
-        return res.toList();
+    private String getFriendStatus(User currentUser, User searchResult) {
+        for (FriendList currentUserFriend : currentUser.getFriendList()) {
+            if (currentUserFriend.getUsername().equalsIgnoreCase(searchResult.getUsername())) {
+                if (currentUserFriend.getStatus().equalsIgnoreCase("ACCEPTED")) {
+                    return "FRIEND";
+                } else if (currentUserFriend.getStatus().equalsIgnoreCase("REQUEST_SENT")) {
+                    return "REQUESTED";
+                }
+            }
+        }
+        return "NOT_FRIEND";
     }
 
     public List<FriendList> listAllFriendRequests(String username){
@@ -212,7 +217,7 @@ public class StreakFlixService {
                 .toList();
 
         if(friends.isEmpty())
-            return new ArrayList<>();
+            return Collections.emptyList();
 
         var friendListNames = friends.stream().map(FriendList::getUsername).toList();
         List<Streak> friendStreaks = streakRepository.findByUsernameIn(friendListNames);
@@ -223,8 +228,7 @@ public class StreakFlixService {
                     .findFirst()
                     .ifPresent(streakObj -> friend.setStreak(streakObj.getStreak()));
         });
-
-
+        
         return friends;
     }
 
