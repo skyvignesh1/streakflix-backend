@@ -2,7 +2,7 @@ package streakflix.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import streakflix.model.FriendList;
 import streakflix.model.FriendRequest;
@@ -140,29 +140,29 @@ public class StreakFlixService {
     public User getUserDetailsByUsername(String userName) throws Exception {
         Optional<User> user = userRepository.findByUsername(userName);
         if (user.isPresent()) {
-                List<String> friendUsernames = Stream.of(user.get().getUsername()).collect(Collectors.toList());
-                if (user.get().getFriendList() != null) {
-                    friendUsernames.addAll(user.get().getFriendList().stream()
-                            .map(FriendList::getUsername)
-                            .collect(Collectors.toList()));
-                }
+            List<String> friendUsernames = Stream.of(user.get().getUsername()).collect(Collectors.toList());
+            if (user.get().getFriendList() != null) {
+                friendUsernames.addAll(user.get().getFriendList().stream()
+                        .map(FriendList::getUsername)
+                        .collect(Collectors.toList()));
+            }
 
-                List<Streak> friendStreaks = streakRepository.findByUsernameIn(friendUsernames);
-                if (user.get().getFriendList() != null) {
-                    user.get().getFriendList().forEach(friend -> {
-                        friendStreaks.stream()
-                                .filter(streakObj -> streakObj.getUsername().equals(friend.getUsername()))
-                                .findFirst()
-                                .ifPresent(streakObj -> friend.setStreak(streakObj.getStreak()));
-                    });
-                }
+            List<Streak> friendStreaks = streakRepository.findByUsernameIn(friendUsernames);
+            if (user.get().getFriendList() != null) {
+                user.get().getFriendList().forEach(friend -> {
+                    friendStreaks.stream()
+                            .filter(streakObj -> streakObj.getUsername().equals(friend.getUsername()))
+                            .findFirst()
+                            .ifPresent(streakObj -> friend.setStreak(streakObj.getStreak()));
+                });
+            }
 
-                friendStreaks.stream()
-                        .filter(streakObj -> streakObj.getUsername().equals(user.get().getUsername()))
-                        .findFirst()
-                        .ifPresent(streakObj -> user.get().setStreak(String.valueOf(streakObj.getStreak())));
+            friendStreaks.stream()
+                    .filter(streakObj -> streakObj.getUsername().equals(user.get().getUsername()))
+                    .findFirst()
+                    .ifPresent(streakObj -> user.get().setStreak(String.valueOf(streakObj.getStreak())));
 
-                return user.get();
+            return user.get();
         }else{
             throw new Exception("No user found");
         }
@@ -175,23 +175,23 @@ public class StreakFlixService {
                 .limit(10)
                 .filter(user -> !user.getUsername().equalsIgnoreCase(currUser.getUsername()))
                 .map(user -> {
-                        boolean found = false;
-                        if(currUser.getFriendList() != null){
+                    boolean found = false;
+                    if(currUser.getFriendList() != null){
 
-                            for(FriendList u : currUser.getFriendList()){
-                                if(user.getUsername().equalsIgnoreCase(u.getUsername())) {
-                                    found = true;
-                                    if (u.getStatus().equalsIgnoreCase("ACCEPTED"))
-                                        user.setStatus("FRIEND");
-                                    else if (u.getStatus().equalsIgnoreCase("REQUEST_SENT"))
-                                        user.setStatus("REQUESTED");
-                                    break;
-                                }
+                        for(FriendList u : currUser.getFriendList()){
+                            if(user.getUsername().equalsIgnoreCase(u.getUsername())) {
+                                found = true;
+                                if (u.getStatus().equalsIgnoreCase("ACCEPTED"))
+                                    user.setStatus("FRIEND");
+                                else if (u.getStatus().equalsIgnoreCase("REQUEST_SENT"))
+                                    user.setStatus("REQUESTED");
+                                break;
                             }
                         }
-                        if (!found) user.setStatus("NOT_FRIEND");
-                        return user;
-        });
+                    }
+                    if (!found) user.setStatus("NOT_FRIEND");
+                    return user;
+                });
 
         return res.toList();
     }
@@ -231,4 +231,21 @@ public class StreakFlixService {
         return friends;
     }
 
+    @Scheduled(cron = "0 19 22 * * ?")
+    public void updateStreaks() {
+        log.info("Cron Job started : Updating streaks");
+        List<User> users = userRepository.findAll();
+        for (User user : users) {
+            if (Double.parseDouble(user.getTodayWatchedMinutes()) > 10) {
+                Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
+                if (streak.isPresent()) {
+                    Streak streakObj = streak.get();
+                    streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + 1));
+                    streakRepository.save(streakObj);
+                }
+                user.setTodayWatchedMinutes("0");
+                userRepository.save(user);
+            }
+        }
+    }
 }
