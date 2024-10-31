@@ -12,6 +12,7 @@ import streakflix.repository.StreakRepository;
 import streakflix.repository.UserRepository;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -73,6 +74,7 @@ public class StreakFlixService {
             throw new Exception("User already exists");
         } else {
             user.setTodayWatchedMinutes("0");
+            user.setFriendList(Collections.emptyList());
             userRepository.save(user);
 
             Streak streak = new Streak();
@@ -168,29 +170,24 @@ public class StreakFlixService {
         }
     }
 
-    public List<User> findMatchingUsers(String currentUser, String username){
+    public List<User> findMatchingUsers(String currentUser, String searchKeyword){
 
         User currUser = userRepository.findByUsername(currentUser).orElseThrow(()->new RuntimeException("No user found"));
-        var res = userRepository.findMatchingUsers(username).stream()
+        var res = userRepository.findMatchingUsers(searchKeyword).stream()
                 .limit(10)
                 .filter(user -> !user.getUsername().equalsIgnoreCase(currUser.getUsername()))
-                .peek(user -> {
-                        Streak streak = streakRepository.findByUsername(user.getUsername()).orElseThrow();
-                        user.setStreak(streak.getStreak());
-                        boolean found = false;
-                        if(currUser.getFriendList() != null){
-                            for(FriendList u : currUser.getFriendList()){
-                                if(user.getUsername().equalsIgnoreCase(u.getUsername())) {
-                                    found = true;
-                                    if (u.getStatus().equalsIgnoreCase("ACCEPTED"))
-                                        user.setStatus("FRIEND");
-                                    else if (u.getStatus().equalsIgnoreCase("REQUEST_SENT"))
-                                        user.setStatus("REQUESTED");
-                                    break;
-                                }
-                            }
-                        }
-                        if (!found) user.setStatus("NOT_FRIEND");
+                .peek(searchResult -> {
+                        streakRepository.findByUsername(searchResult.getUsername())
+                                .ifPresent(streak -> searchResult.setStreak(streak.getStreak()));
+                        searchResult.setStatus("NOT_FRIEND");
+                        currUser.getFriendList().stream()
+                                .filter(currentUserFriend -> currentUserFriend.getUsername().equalsIgnoreCase(searchResult.getUsername()))
+                                .forEach(currentUserFriend -> {
+                                    if (currentUserFriend.getStatus().equalsIgnoreCase("ACCEPTED"))
+                                        searchResult.setStatus("FRIEND");
+                                    else if (currentUserFriend.getStatus().equalsIgnoreCase("REQUEST_SENT"))
+                                        searchResult.setStatus("REQUESTED");
+                                });
                 });
 
         return res.toList();
