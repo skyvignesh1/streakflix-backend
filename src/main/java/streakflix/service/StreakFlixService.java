@@ -231,21 +231,27 @@ public class StreakFlixService {
         return friends;
     }
 
-    @Scheduled(cron = "0 19 22 * * ?")
+    @Scheduled(cron = "0 02 18 * * ?")
     public void updateStreaks() {
         log.info("Cron Job started : Updating streaks");
         List<User> users = userRepository.findAll();
         for (User user : users) {
+            Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
             if (Double.parseDouble(user.getTodayWatchedMinutes()) > 10) {
-                Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
                 if (streak.isPresent()) {
                     Streak streakObj = streak.get();
-                    streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + 1));
+                    streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + Integer.parseInt(user.getTodayWatchedMinutes())));
                     streakRepository.save(streakObj);
                 }
-                user.setTodayWatchedMinutes("0");
-                userRepository.save(user);
+            }else{
+                if (streak.isPresent()) {
+                    Streak streakObj = streak.get();
+                    streakObj.setStreak("0");
+                    streakRepository.save(streakObj);
+                }
             }
+            user.setTodayWatchedMinutes("0");
+            userRepository.save(user);
         }
     }
 }
