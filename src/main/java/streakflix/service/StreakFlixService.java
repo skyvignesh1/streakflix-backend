@@ -12,6 +12,7 @@ import streakflix.repository.StreakRepository;
 import streakflix.repository.UserRepository;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -72,6 +73,7 @@ public class StreakFlixService {
             log.error("User {} already exists", user.getUsername());
             throw new Exception("User already exists");
         } else {
+            user.setFriendList(Collections.emptyList());
             user.setTodayWatchedMinutes("0");
             userRepository.save(user);
 
@@ -128,13 +130,13 @@ public class StreakFlixService {
 
     }
 
-    public void updateTodayWatchedMinutes(User user, String userName) throws Exception {
+    public void updateTodayWatchedMinutes(User reqUser, String userName) throws Exception {
 
-        var user1 = userRepository.findByUsername(userName)
+        var user = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new Exception("User is not found"));
 
-        user1.setTodayWatchedMinutes(user.getTodayWatchedMinutes());
-        userRepository.save(user1);
+        user.setTodayWatchedMinutes(reqUser.getTodayWatchedMinutes());
+        userRepository.save(user);
     }
 
     public User getUserDetailsByUsername(String userName) throws Exception {
@@ -168,32 +170,32 @@ public class StreakFlixService {
         }
     }
 
-    public List<User> findMatchingUsers(String currentUser, String username){
+    public List<User> findMatchingUsers(String currentUser, String searchKeyword) {
+        User currUser = userRepository.findByUsername(currentUser)
+                .orElseThrow(() -> new RuntimeException("No user found"));
 
-        User currUser = userRepository.findByUsername(currentUser).orElseThrow(()->new RuntimeException("No user found"));
-        var res = userRepository.findMatchingUsers(username).stream()
+        return userRepository.findMatchingUsers(searchKeyword).stream()
                 .limit(10)
                 .filter(user -> !user.getUsername().equalsIgnoreCase(currUser.getUsername()))
-                .map(user -> {
-                    boolean found = false;
-                    if(currUser.getFriendList() != null){
+                .peek(searchResult -> {
+                    streakRepository.findByUsername(searchResult.getUsername())
+                            .ifPresent(streak -> searchResult.setStreak(streak.getStreak()));
+                    searchResult.setStatus(getFriendStatus(currUser, searchResult));
+                })
+                .toList();
+    }
 
-                        for(FriendList u : currUser.getFriendList()){
-                            if(user.getUsername().equalsIgnoreCase(u.getUsername())) {
-                                found = true;
-                                if (u.getStatus().equalsIgnoreCase("ACCEPTED"))
-                                    user.setStatus("FRIEND");
-                                else if (u.getStatus().equalsIgnoreCase("REQUEST_SENT"))
-                                    user.setStatus("REQUESTED");
-                                break;
-                            }
-                        }
-                    }
-                    if (!found) user.setStatus("NOT_FRIEND");
-                    return user;
-                });
-
-        return res.toList();
+    private String getFriendStatus(User currentUser, User searchResult) {
+        for (FriendList currentUserFriend : currentUser.getFriendList()) {
+            if (currentUserFriend.getUsername().equalsIgnoreCase(searchResult.getUsername())) {
+                if (currentUserFriend.getStatus().equalsIgnoreCase("ACCEPTED")) {
+                    return "FRIEND";
+                } else if (currentUserFriend.getStatus().equalsIgnoreCase("REQUEST_SENT")) {
+                    return "REQUESTED";
+                }
+            }
+        }
+        return "NOT_FRIEND";
     }
 
     public List<FriendList> listAllFriendRequests(String username){
