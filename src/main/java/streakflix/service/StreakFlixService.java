@@ -137,6 +137,13 @@ public class StreakFlixService {
 
         user.setTodayWatchedMinutes(reqUser.getTodayWatchedMinutes());
         userRepository.save(user);
+
+        Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
+        if (streak.isPresent()) {
+            Streak streakObj = streak.get();
+            streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + (int) Double.parseDouble(reqUser.getTodayWatchedMinutes())));
+            streakRepository.save(streakObj);
+        }
     }
 
     public User getUserDetailsByUsername(String userName) throws Exception {
@@ -239,10 +246,10 @@ public class StreakFlixService {
         List<User> users = userRepository.findAll();
         for (User user : users) {
             Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
-            if (Double.parseDouble(user.getTodayWatchedMinutes()) > 10) {
+            if (Double.parseDouble(user.getTodayWatchedMinutes()) > 1) {
                 if (streak.isPresent()) {
                     Streak streakObj = streak.get();
-                    streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + Integer.parseInt(user.getTodayWatchedMinutes())));
+                    streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + (int) Double.parseDouble(user.getTodayWatchedMinutes())));
                     streakRepository.save(streakObj);
                 }
             }else{
