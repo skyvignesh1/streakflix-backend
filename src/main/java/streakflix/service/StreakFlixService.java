@@ -240,19 +240,13 @@ public class StreakFlixService {
         return friends;
     }
 
-    @Scheduled(cron = "0 02 18 * * ?")
+    @Scheduled(cron = "0 59 23 * * ?")
     public void updateStreaks() {
         log.info("Cron Job started : Updating streaks");
         List<User> users = userRepository.findAll();
         for (User user : users) {
             Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
-            if (Double.parseDouble(user.getTodayWatchedMinutes()) > 1) {
-                if (streak.isPresent()) {
-                    Streak streakObj = streak.get();
-                    streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + (int) Double.parseDouble(user.getTodayWatchedMinutes())));
-                    streakRepository.save(streakObj);
-                }
-            }else{
+            if (!(Double.parseDouble(user.getTodayWatchedMinutes()) > 10)) {
                 if (streak.isPresent()) {
                     Streak streakObj = streak.get();
                     streakObj.setStreak("0");
