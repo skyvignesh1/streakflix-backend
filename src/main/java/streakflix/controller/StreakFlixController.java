@@ -93,8 +93,7 @@ public class StreakFlixController {
     }
 
     @PostMapping("/updateTodayWatchedMinutes")
-    public ResponseEntity<?> updateTodayWatchedMinutes(@RequestBody User user, @RequestHeader("Authorization") String authorizationHeader) {
-        log.info("Received request to update today's watched minutes for user: {}", user.getUsername());
+    public ResponseEntity<?> updateTodayWatchedMinutes(@RequestHeader("Authorization") String authorizationHeader) {
         try {
             String token = authorizationHeader.replace("Bearer ", "");
             log.debug("Extracted token: {}", token);
@@ -102,7 +101,7 @@ public class StreakFlixController {
             log.debug("Extracted username from token: {}", username);
             if (jwtUtil.validateToken(token, username)) {
                 log.info("Token is valid for username: {}", username);
-                service.updateTodayWatchedMinutes(user, username);
+                service.updateTodayWatchedMinutes(username);
                 log.info("Updated today's watched minutes for user: {}", username);
             } else {
                 log.warn("Invalid session for token: {}", token);

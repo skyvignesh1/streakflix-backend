@@ -132,9 +132,9 @@ public class StreakFlixService {
 
     }
     @Async
-    public void updateTodayWatchedMinutes(User reqUser, String userName) throws Exception {
+    public void updateTodayWatchedMinutes(String userName) throws Exception {
 
-        var user = userRepository.findByUsername(userName)
+        User user = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new Exception("User is not found"));
         user.setTrackTime(String.valueOf(Integer.parseInt(user.getTrackTime())+10));
         if(Integer.parseInt(user.getTrackTime())>=60){
@@ -143,13 +143,11 @@ public class StreakFlixService {
             Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
             if (streak.isPresent()) {
                 Streak streakObj = streak.get();
-                streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + (int)reqUser.getTodayWatchedMinutes()));
+                streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + (int)user.getTodayWatchedMinutes()));
                 streakRepository.save(streakObj);
             }
         }
         userRepository.save(user);
-
-
     }
 
     public User getUserDetailsByUsername(String userName) throws Exception {
