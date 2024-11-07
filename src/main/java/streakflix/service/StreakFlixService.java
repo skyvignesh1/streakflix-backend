@@ -2,6 +2,7 @@ package streakflix.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import streakflix.model.FriendList;
@@ -74,7 +75,8 @@ public class StreakFlixService {
             throw new Exception("User already exists");
         } else {
             user.setFriendList(Collections.emptyList());
-            user.setTodayWatchedMinutes("0");
+            user.setTodayWatchedMinutes(0);
+            user.setTrackTime("0");
             userRepository.save(user);
 
             Streak streak = new Streak();
@@ -129,21 +131,25 @@ public class StreakFlixService {
         userRepository.save(friendUser);
 
     }
-
+    @Async
     public void updateTodayWatchedMinutes(User reqUser, String userName) throws Exception {
 
         var user = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new Exception("User is not found"));
-
-        user.setTodayWatchedMinutes(reqUser.getTodayWatchedMinutes());
+        user.setTrackTime(String.valueOf(Integer.parseInt(user.getTrackTime())+10));
+        if(Integer.parseInt(user.getTrackTime())>=60){
+            user.setTrackTime("0");
+            user.setTodayWatchedMinutes(user.getTodayWatchedMinutes()+1);
+            Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
+            if (streak.isPresent()) {
+                Streak streakObj = streak.get();
+                streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + (int)reqUser.getTodayWatchedMinutes()));
+                streakRepository.save(streakObj);
+            }
+        }
         userRepository.save(user);
 
-        Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
-        if (streak.isPresent()) {
-            Streak streakObj = streak.get();
-            streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + (int) Double.parseDouble(reqUser.getTodayWatchedMinutes())));
-            streakRepository.save(streakObj);
-        }
+
     }
 
     public User getUserDetailsByUsername(String userName) throws Exception {
@@ -246,14 +252,14 @@ public class StreakFlixService {
         List<User> users = userRepository.findAll();
         for (User user : users) {
             Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
-            if (!(Double.parseDouble(user.getTodayWatchedMinutes()) > 10)) {
+            if (!(user.getTodayWatchedMinutes() > 10)) {
                 if (streak.isPresent()) {
                     Streak streakObj = streak.get();
                     streakObj.setStreak("0");
                     streakRepository.save(streakObj);
                 }
             }
-            user.setTodayWatchedMinutes("0");
+            user.setTodayWatchedMinutes(0);
             userRepository.save(user);
         }
     }
