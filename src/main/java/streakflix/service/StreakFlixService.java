@@ -143,7 +143,7 @@ public class StreakFlixService {
             Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
             if (streak.isPresent()) {
                 Streak streakObj = streak.get();
-                streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + (int)user.getTodayWatchedMinutes()));
+                streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + 1));
                 streakRepository.save(streakObj);
             }
         }
