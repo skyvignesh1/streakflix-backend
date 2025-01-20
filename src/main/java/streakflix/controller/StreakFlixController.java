@@ -218,5 +218,40 @@ public class StreakFlixController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
+    @PostMapping("/updateStreak")
+    public ResponseEntity<?> updateStreak(@RequestHeader("Authorization") String authorizationHeader, @RequestParam String movieName, @RequestParam String platform) {
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            String username = jwtUtil.extractUsername(token);
+            if (jwtUtil.validateToken(token, username)) {
+                service.updateStreak(movieName, platform,username);
+                return new ResponseEntity<>("Streak updated successfully", HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+    @PostMapping("/updateMovieDetails")
+    public ResponseEntity<?> updateMovieDetails(@RequestHeader("Authorization") String authorizationHeader,
+                                                @RequestParam String movieId,
+                                                @RequestParam String movieName,
+                                                @RequestParam int actualDuration,
+                                                @RequestParam int streakCount,
+                                                @RequestParam String newPlatform) {
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            String username = jwtUtil.extractUsername(token);
+            if (jwtUtil.validateToken(token, username)) {
+                service.updateMovieDetails(movieId, movieName, actualDuration, streakCount, newPlatform);
+                return new ResponseEntity<>("Movie details updated successfully", HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
 }
+

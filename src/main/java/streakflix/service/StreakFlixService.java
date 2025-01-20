@@ -5,10 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import streakflix.model.FriendList;
-import streakflix.model.FriendRequest;
-import streakflix.model.Streak;
-import streakflix.model.User;
+import streakflix.model.*;
+import streakflix.repository.MovieRepository;
 import streakflix.repository.StreakRepository;
 import streakflix.repository.UserRepository;
 
@@ -28,6 +26,10 @@ public class StreakFlixService {
 
     @Autowired
     private StreakRepository streakRepository;
+
+    @Autowired
+    private MovieRepository movieRepository;
+
 
     public Optional<User> login(String username, String password) throws Exception {
         Optional<User> user = userRepository.findByUsername(username);
@@ -131,15 +133,16 @@ public class StreakFlixService {
         userRepository.save(friendUser);
 
     }
+
     @Async
     public void updateTodayWatchedMinutes(String userName) throws Exception {
 
         User user = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new Exception("User is not found"));
-        user.setTrackTime(String.valueOf(Integer.parseInt(user.getTrackTime())+10));
-        if(Integer.parseInt(user.getTrackTime())>=60){
+        user.setTrackTime(String.valueOf(Integer.parseInt(user.getTrackTime()) + 10));
+        if (Integer.parseInt(user.getTrackTime()) >= 60) {
             user.setTrackTime("0");
-            user.setTodayWatchedMinutes(user.getTodayWatchedMinutes()+1);
+            user.setTodayWatchedMinutes(user.getTodayWatchedMinutes() + 1);
             Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
             if (streak.isPresent()) {
                 Streak streakObj = streak.get();
@@ -176,7 +179,7 @@ public class StreakFlixService {
                     .ifPresent(streakObj -> user.get().setStreak(String.valueOf(streakObj.getStreak())));
 
             return user.get();
-        }else{
+        } else {
             throw new Exception("No user found");
         }
     }
@@ -209,25 +212,27 @@ public class StreakFlixService {
         return "NOT_FRIEND";
     }
 
-    public List<FriendList> listAllFriendRequests(String username){
+    public List<FriendList> listAllFriendRequests(String username) {
         return listFriends(username, "REQUEST_RECEIVED");
     }
-    public List<FriendList> listAllPendingRequests(String username){
+
+    public List<FriendList> listAllPendingRequests(String username) {
         return listFriends(username, "REQUEST_SENT");
     }
 
 
-    public List<FriendList> listAllFriends(String username){
+    public List<FriendList> listAllFriends(String username) {
         return listFriends(username, "ACCEPTED");
     }
-    private List<FriendList> listFriends(String username, String status){
 
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("No user found") );
+    private List<FriendList> listFriends(String username, String status) {
+
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("No user found"));
         List<FriendList> friends = user.getFriendList().stream()
                 .filter(friendList -> friendList.getStatus().equalsIgnoreCase(status))
                 .toList();
 
-        if(friends.isEmpty())
+        if (friends.isEmpty())
             return new ArrayList<>();
 
         var friendListNames = friends.stream().map(FriendList::getUsername).toList();
@@ -258,6 +263,58 @@ public class StreakFlixService {
                 }
             }
             user.setTodayWatchedMinutes(0);
+            userRepository.save(user);
+        }
+    }
+
+    public void updateMovieDetails(String movieId, String newMovieName, int newActualDuration, int newStreakCount, String newPlatform) throws Exception {
+        Movie movie = movieRepository.findById(movieId)
+                .orElseThrow(() -> new Exception("Movie not found"));
+
+        movie.setMovieName(newMovieName);
+        movie.setActualDuration(newActualDuration);
+        movie.setStreakCount(newStreakCount);
+        movie.setPlatform(newPlatform);
+
+        movieRepository.save(movie);
+    }
+
+    @Async
+    public void updateStreak(String movieName, String platform, String userName) throws Exception {
+        User user = userRepository.findByUsername(userName)
+                .orElseThrow(() -> new Exception("User is not found"));
+
+        // Fetch movie details from the movie database
+        Movie movie = movieRepository.findMatchingMovie(movieName)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new Exception("Movie not found"));
+        if (!movie.getPlatform().equalsIgnoreCase(platform)) {
+            throw new Exception("Movie not available on the specified platform");
+        } else {
+            int movieDuration = movie.getActualDuration();
+
+            // Assume watchedDuration is tracked and updated elsewhere in the application
+            float watchedDuration = userRepository.findByUsername(userName)
+                    .get()
+                    .getTodayWatchedMinutes();
+
+            // Calculate the percentage of the movie watched
+            int watchedPercentage = (int) watchedDuration / movieDuration * 100;
+
+            // Check if the user has watched at least 80% of the movie
+            if (watchedPercentage == 80) {
+                // Get the streak value for the movie
+                int movieStreak = movie.getStreakCount();
+
+                // Update the user's track time and streak
+                Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
+                if (streak.isPresent()) {
+                    Streak streakObj = streak.get();
+                    streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + movieStreak));
+                    streakRepository.save(streakObj);
+                }
+            }
             userRepository.save(user);
         }
     }
