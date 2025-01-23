@@ -7,11 +7,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import streakflix.model.FriendRequest;
+import streakflix.model.Movie;
+import streakflix.model.OTTDetails;
 import streakflix.model.User;
+import streakflix.repository.MovieRepository;
 import streakflix.service.StreakFlixService;
+import streakflix.util.BiasedRandom;
 import streakflix.util.JwtUtil;
 
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -24,6 +29,9 @@ public class StreakFlixController {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    MovieRepository movieRepository;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User input) {
@@ -93,7 +101,9 @@ public class StreakFlixController {
     }
 
     @PostMapping("/updateTodayWatchedMinutes")
-    public ResponseEntity<?> updateTodayWatchedMinutes(@RequestHeader("Authorization") String authorizationHeader) {
+    public ResponseEntity<?> updateTodayWatchedMinutes(@RequestHeader("Authorization") String authorizationHeader,
+                                                       @RequestBody Movie movie) {
+        boolean alreadyCompletedMovie;
         try {
             String token = authorizationHeader.replace("Bearer ", "");
             log.debug("Extracted token: {}", token);
@@ -101,7 +111,7 @@ public class StreakFlixController {
             log.debug("Extracted username from token: {}", username);
             if (jwtUtil.validateToken(token, username)) {
                 log.info("Token is valid for username: {}", username);
-                service.updateTodayWatchedMinutes(username);
+                alreadyCompletedMovie = service.updateTodayWatchedMinutes(username, movie);
                 log.info("Updated today's watched minutes for user: {}", username);
             } else {
                 log.warn("Invalid session for token: {}", token);
@@ -111,7 +121,7 @@ public class StreakFlixController {
             log.error("Exception occurred while updating today's watched minutes", e);
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(alreadyCompletedMovie, HttpStatus.OK);
     }
 
     @PostMapping("/validateToken")
@@ -218,40 +228,57 @@ public class StreakFlixController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-    @PostMapping("/updateStreak")
-    public ResponseEntity<?> updateStreak(@RequestHeader("Authorization") String authorizationHeader, @RequestParam String movieName, @RequestParam String platform) {
-        try {
-            String token = authorizationHeader.replace("Bearer ", "");
-            String username = jwtUtil.extractUsername(token);
-            if (jwtUtil.validateToken(token, username)) {
-                service.updateStreak(movieName, platform,username);
-                return new ResponseEntity<>("Streak updated successfully", HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+
+    @Autowired
+    BiasedRandom randomBias;
+
+    @PostMapping("/addMovieMetaDataToMongoDb")
+    public void receiveInfo(@RequestParam(name = "movieId") int movieId, @RequestParam(name = "movieName") String movieName){
+        try{
+            Movie movie = new Movie();
+
+            movie.setCompositeKey(new Movie.CompositeKey(String.valueOf(movieId), String.valueOf(randomBias.getOTTRandomPlatform(0))));
+            movie.setStreakCount(randomBias.getRandom());
+            movie.setMovieName(movieName);
+            movieRepository.save(movie);
+
+            boolean shouldPresentInMultipleOttPlatforms = randomBias.biasedFalse();
+            if(shouldPresentInMultipleOttPlatforms){
+                movie.setCompositeKey(new Movie.CompositeKey(String.valueOf(movieId), String.valueOf(randomBias.getOTTRandomPlatform(Integer.parseInt(movie.getCompositeKey().getPlatform())))));
+                movie.setStreakCount(randomBias.getRandom());
+                movie.setMovieName(movieName);
+                movieRepository.save(movie);
             }
-        } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exp){
+            System.out.println(exp.getMessage());
         }
     }
-    @PostMapping("/updateMovieDetails")
-    public ResponseEntity<?> updateMovieDetails(@RequestHeader("Authorization") String authorizationHeader,
-                                                @RequestParam String movieId,
-                                                @RequestParam String movieName,
-                                                @RequestParam int actualDuration,
-                                                @RequestParam int streakCount,
-                                                @RequestParam String newPlatform) {
+
+    @GetMapping("/getMovieDetails")
+    public Movie getMovieDetails(@RequestParam("movieId") String movieId) throws Exception {
         try {
-            String token = authorizationHeader.replace("Bearer ", "");
-            String username = jwtUtil.extractUsername(token);
-            if (jwtUtil.validateToken(token, username)) {
-                service.updateMovieDetails(movieId, movieName, actualDuration, streakCount, newPlatform);
-                return new ResponseEntity<>("Movie details updated successfully", HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
-            }
-        } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return service.getMovieDetails(movieId);
+        }catch (Exception e){
+            return new Movie();
         }
+    }
+    @GetMapping("/pullAllMoviesFromMongoDb")
+    public List<Movie> pullMoviesFromMongoDb(){
+        return service.pullAllMoviesFromMongoDb();
+    }
+
+    @GetMapping("/pullAllOtt")
+    public List<OTTDetails> getAllOTTs(){
+        return service.pullAllOtt();
+    }
+    @GetMapping("/pullAllMoviesFromMongoDbByPlatform")
+    public List<Movie> pullAllMoviesFromMongoDbByPlatform(@RequestParam(name = "platform") String platform){
+        return service.pullAllMoviesFromMongoDbByPlatform(platform);
+    }
+
+    @GetMapping("/searchMoviesFromMongoDb")
+    public List<Movie> searchMoviesFromMongoDb(@RequestParam(name = "keyword") String keyword){
+        return service.searchMoviesFromMongoDb(keyword);
     }
 }
 

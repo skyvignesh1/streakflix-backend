@@ -3,12 +3,17 @@ package streakflix.repository;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import streakflix.model.Movie;
-import streakflix.model.User;
 
 import java.util.List;
 
-public interface MovieRepository extends MongoRepository<Movie, String> {
-    @Query("{ 'username': {'$regex' : '^?0', '$options' : 'i'} }")
-    List<Movie> findMatchingMovie(String movieName);
-    List<Movie> findByPlatform(String platform);
+public interface MovieRepository extends MongoRepository<Movie, Movie.CompositeKey> {
+    List<Movie> findByCompositeKeyMovieId(String movieId);
+
+    List<Movie> findByCompositeKeyPlatform(String platform);
+
+    @Query(value = "{ 'movieName': {'$regex' : '^?0', '$options' : 'i'} }", sort = "{'streakCount' : -1}")
+    List<Movie> findByMovieNameOrderByStreakCountDesc(String  movieName);
+
+    Movie findByCompositeKey(Movie.CompositeKey compositeKey);
+
 }

@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import streakflix.model.*;
 import streakflix.repository.MovieRepository;
+import streakflix.repository.OttRepository;
 import streakflix.repository.StreakRepository;
 import streakflix.repository.UserRepository;
 
@@ -29,6 +30,9 @@ public class StreakFlixService {
 
     @Autowired
     private MovieRepository movieRepository;
+
+    @Autowired
+    private OttRepository ottRepository;
 
 
     public Optional<User> login(String username, String password) throws Exception {
@@ -77,8 +81,6 @@ public class StreakFlixService {
             throw new Exception("User already exists");
         } else {
             user.setFriendList(Collections.emptyList());
-            user.setTodayWatchedMinutes(0);
-            user.setTrackTime("0");
             userRepository.save(user);
 
             Streak streak = new Streak();
@@ -135,22 +137,37 @@ public class StreakFlixService {
     }
 
     @Async
-    public void updateTodayWatchedMinutes(String userName) throws Exception {
+    public boolean updateTodayWatchedMinutes(String userName, Movie movie) throws Exception {
 
         User user = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new Exception("User is not found"));
-        user.setTrackTime(String.valueOf(Integer.parseInt(user.getTrackTime()) + 10));
-        if (Integer.parseInt(user.getTrackTime()) >= 60) {
-            user.setTrackTime("0");
-            user.setTodayWatchedMinutes(user.getTodayWatchedMinutes() + 1);
-            Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
-            if (streak.isPresent()) {
-                Streak streakObj = streak.get();
-                streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + 1));
-                streakRepository.save(streakObj);
-            }
+
+        boolean alreadyWatchedMovie = user.getWatchedMovies().contains(movie);
+        if(alreadyWatchedMovie)
+            return true;
+
+        Optional<WatchDetails> optionalWatchDetails = user.getWatchDetails().stream()
+                .filter(wDetails -> wDetails.getMovieId().equals(movie.getCompositeKey().getMovieId()) &&
+                        wDetails.getPlatformId().equals(movie.getCompositeKey().getPlatform())).findFirst();
+
+        WatchDetails watchDetails;
+        if(optionalWatchDetails.isEmpty()) {
+            WatchDetails newWatchDetails = new WatchDetails();
+            newWatchDetails.setMovieId(movie.getCompositeKey().getMovieId());
+            newWatchDetails.setPlatformId(movie.getCompositeKey().getPlatform());
+            user.getWatchDetails().add(newWatchDetails);
+            watchDetails = newWatchDetails;
+        }else
+            watchDetails = optionalWatchDetails.get();
+
+        watchDetails.setTrackTime(watchDetails.getTrackTime() + 10);
+        if (watchDetails.getTrackTime() >= 60) {
+            watchDetails.setTrackTime(0);
+            watchDetails.setTodayWatchedMinutes(watchDetails.getTodayWatchedMinutes() + 1);
+            updateStreak(user, watchDetails, movieRepository.findByCompositeKey(movie.getCompositeKey()));
         }
         userRepository.save(user);
+        return false;
     }
 
     public User getUserDetailsByUsername(String userName) throws Exception {
@@ -160,7 +177,7 @@ public class StreakFlixService {
             if (user.get().getFriendList() != null) {
                 friendUsernames.addAll(user.get().getFriendList().stream()
                         .map(FriendList::getUsername)
-                        .collect(Collectors.toList()));
+                        .toList());
             }
 
             List<Streak> friendStreaks = streakRepository.findByUsernameIn(friendUsernames);
@@ -254,68 +271,45 @@ public class StreakFlixService {
         log.info("Cron Job started : Updating streaks");
         List<User> users = userRepository.findAll();
         for (User user : users) {
+            user.getWatchDetails().clear();
+            userRepository.save(user);
+        }
+    }
+
+    private void updateStreak(User user, WatchDetails watchDetails, Movie movie) {
+
+        int movieDuration = movie.getActualDuration();
+        int watchedDuration = watchDetails.getTodayWatchedMinutes();
+
+        int watchedPercentage = (watchedDuration * 100 / movieDuration) ;
+        if (watchedPercentage >= 5) {
+            int movieStreak = movie.getStreakCount();
             Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
-            if (!(user.getTodayWatchedMinutes() > 10)) {
-                if (streak.isPresent()) {
-                    Streak streakObj = streak.get();
-                    streakObj.setStreak("0");
-                    streakRepository.save(streakObj);
-                }
+            if (streak.isPresent()) {
+                Streak streakObj = streak.get();
+                streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + movieStreak));
+                streakRepository.save(streakObj);
             }
-            user.setTodayWatchedMinutes(0);
-            userRepository.save(user);
+            user.getWatchedMovies().add(movie);
         }
     }
 
-    public void updateMovieDetails(String movieId, String newMovieName, int newActualDuration, int newStreakCount, String newPlatform) throws Exception {
-        Movie movie = movieRepository.findById(movieId)
-                .orElseThrow(() -> new Exception("Movie not found"));
-
-        movie.setMovieName(newMovieName);
-        movie.setActualDuration(newActualDuration);
-        movie.setStreakCount(newStreakCount);
-        movie.setPlatform(newPlatform);
-
-        movieRepository.save(movie);
+    public Movie getMovieDetails(String movieId) throws Exception {
+        return movieRepository.findByCompositeKeyMovieId(movieId).get(0);
+    }
+    public List<Movie> pullAllMoviesFromMongoDb() {
+        return movieRepository.findAll();
     }
 
-    @Async
-    public void updateStreak(String movieName, String platform, String userName) throws Exception {
-        User user = userRepository.findByUsername(userName)
-                .orElseThrow(() -> new Exception("User is not found"));
-
-        // Fetch movie details from the movie database
-        Movie movie = movieRepository.findMatchingMovie(movieName)
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new Exception("Movie not found"));
-        if (!movie.getPlatform().equalsIgnoreCase(platform)) {
-            throw new Exception("Movie not available on the specified platform");
-        } else {
-            int movieDuration = movie.getActualDuration();
-
-            // Assume watchedDuration is tracked and updated elsewhere in the application
-            float watchedDuration = userRepository.findByUsername(userName)
-                    .get()
-                    .getTodayWatchedMinutes();
-
-            // Calculate the percentage of the movie watched
-            int watchedPercentage = (int) watchedDuration / movieDuration * 100;
-
-            // Check if the user has watched at least 80% of the movie
-            if (watchedPercentage == 80) {
-                // Get the streak value for the movie
-                int movieStreak = movie.getStreakCount();
-
-                // Update the user's track time and streak
-                Optional<Streak> streak = streakRepository.findByUsername(user.getUsername());
-                if (streak.isPresent()) {
-                    Streak streakObj = streak.get();
-                    streakObj.setStreak(String.valueOf(Integer.parseInt(streakObj.getStreak()) + movieStreak));
-                    streakRepository.save(streakObj);
-                }
-            }
-            userRepository.save(user);
-        }
+    public List<OTTDetails> pullAllOtt() {
+        return ottRepository.findAll();
     }
+
+    public List<Movie> pullAllMoviesFromMongoDbByPlatform(String platform) {
+        return movieRepository.findByCompositeKeyPlatform(platform);
+    }
+    public List<Movie> searchMoviesFromMongoDb(String keyword) {
+        return movieRepository.findByMovieNameOrderByStreakCountDesc(keyword);
+    }
+
 }

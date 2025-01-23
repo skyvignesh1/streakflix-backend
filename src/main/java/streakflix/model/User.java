@@ -1,11 +1,13 @@
 package streakflix.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.mongodb.lang.Nullable;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -21,9 +23,8 @@ public class User {
     private String streak;
     private List<FriendList> friendList;
     private String authorizationToken;
-    private float todayWatchedMinutes;
-    private String trackTime;
 
     private String status;
-
+    private List<WatchDetails> watchDetails = new ArrayList<>();
+    private List<Movie> watchedMovies = new ArrayList<>();
 }
