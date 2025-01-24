@@ -11,5 +11,6 @@ public class WatchDetails {
     private String movieId;
     private String platformId;
     private int todayWatchedMinutes;
+    private String movieName;
 
 }

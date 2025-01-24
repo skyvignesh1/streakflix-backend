@@ -21,7 +21,7 @@ public class User {
     private String email;
     private String password;
     private String streak;
-    private List<FriendList> friendList;
+    private List<FriendList> friendList = new ArrayList<>();
     private String authorizationToken;
 
     private String status;

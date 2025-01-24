@@ -137,24 +137,26 @@ public class StreakFlixService {
     }
 
     @Async
-    public boolean updateTodayWatchedMinutes(String userName, Movie movie) throws Exception {
+    public boolean updateTodayWatchedMinutes(String userName, Movie requestMovie) throws Exception {
 
         User user = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new Exception("User is not found"));
 
-        boolean alreadyWatchedMovie = user.getWatchedMovies().contains(movie);
+        final Movie fetchedMovie = movieRepository.findByCompositeKey(requestMovie.getCompositeKey());
+        boolean alreadyWatchedMovie = user.getWatchedMovies().contains(fetchedMovie) || fetchedMovie.getStreakCount() == 0;
         if(alreadyWatchedMovie)
             return true;
 
         Optional<WatchDetails> optionalWatchDetails = user.getWatchDetails().stream()
-                .filter(wDetails -> wDetails.getMovieId().equals(movie.getCompositeKey().getMovieId()) &&
-                        wDetails.getPlatformId().equals(movie.getCompositeKey().getPlatform())).findFirst();
+                .filter(wDetails -> wDetails.getMovieId().equals(fetchedMovie.getCompositeKey().getMovieId()) &&
+                        wDetails.getPlatformId().equals(fetchedMovie.getCompositeKey().getPlatform())).findFirst();
 
         WatchDetails watchDetails;
         if(optionalWatchDetails.isEmpty()) {
             WatchDetails newWatchDetails = new WatchDetails();
-            newWatchDetails.setMovieId(movie.getCompositeKey().getMovieId());
-            newWatchDetails.setPlatformId(movie.getCompositeKey().getPlatform());
+            newWatchDetails.setMovieId(fetchedMovie.getCompositeKey().getMovieId());
+            newWatchDetails.setPlatformId(fetchedMovie.getCompositeKey().getPlatform());
+            newWatchDetails.setMovieName(fetchedMovie.getMovieName());
             user.getWatchDetails().add(newWatchDetails);
             watchDetails = newWatchDetails;
         }else
@@ -164,7 +166,7 @@ public class StreakFlixService {
         if (watchDetails.getTrackTime() >= 60) {
             watchDetails.setTrackTime(0);
             watchDetails.setTodayWatchedMinutes(watchDetails.getTodayWatchedMinutes() + 1);
-            updateStreak(user, watchDetails, movieRepository.findByCompositeKey(movie.getCompositeKey()));
+            updateStreak(user, watchDetails, fetchedMovie);
         }
         userRepository.save(user);
         return false;
