@@ -23,6 +23,10 @@ public class Movie {
     private int actualDuration;
     private int streakCount;
 
+    private String moviePosterURL;
+    private String movieDescription;
+    private String backDropURL;
+
     @Data
     @AllArgsConstructor
     public static class CompositeKey implements Serializable {

@@ -233,20 +233,19 @@ public class StreakFlixController {
     BiasedRandom randomBias;
 
     @PostMapping("/addMovieMetaDataToMongoDb")
-    public void receiveInfo(@RequestParam(name = "movieId") int movieId, @RequestParam(name = "movieName") String movieName){
+    public void receiveInfo(@RequestBody Movie movie){
         try{
-            Movie movie = new Movie();
 
-            movie.setCompositeKey(new Movie.CompositeKey(String.valueOf(movieId), String.valueOf(randomBias.getOTTRandomPlatform(0))));
+            movie.setCompositeKey(new Movie.CompositeKey(String.valueOf(movie.getCompositeKey().getMovieId()), String.valueOf(randomBias.getOTTRandomPlatform(0))));
             movie.setStreakCount(randomBias.getRandom());
-            movie.setMovieName(movieName);
+            movie.setMovieName(movie.getMovieName());
             movieRepository.save(movie);
 
             boolean shouldPresentInMultipleOttPlatforms = randomBias.biasedFalse();
             if(shouldPresentInMultipleOttPlatforms){
-                movie.setCompositeKey(new Movie.CompositeKey(String.valueOf(movieId), String.valueOf(randomBias.getOTTRandomPlatform(Integer.parseInt(movie.getCompositeKey().getPlatform())))));
+                movie.setCompositeKey(new Movie.CompositeKey(String.valueOf(movie.getCompositeKey().getMovieId()), String.valueOf(randomBias.getOTTRandomPlatform(Integer.parseInt(movie.getCompositeKey().getPlatform())))));
                 movie.setStreakCount(randomBias.getRandom());
-                movie.setMovieName(movieName);
+                movie.setMovieName(movie.getMovieName());
                 movieRepository.save(movie);
             }
         }catch (Exception exp){
