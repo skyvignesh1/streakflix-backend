@@ -11,7 +11,7 @@ public interface MovieRepository extends MongoRepository<Movie, Movie.CompositeK
 
     List<Movie> findByCompositeKeyPlatform(String platform);
 
-    @Query(value = "{ 'movieName': {'$regex' : '^?0', '$options' : 'i'} }", sort = "{'streakCount' : -1}")
+    @Query(value = "{ 'movieName': {'$regex' : '.*?0.*', '$options' : 'i'} }", sort = "{'streakCount' : -1}")
     List<Movie> findByMovieNameOrderByStreakCountDesc(String  movieName);
 
     Movie findByCompositeKey(Movie.CompositeKey compositeKey);
