@@ -16,4 +16,6 @@ public interface MovieRepository extends MongoRepository<Movie, Movie.CompositeK
 
     Movie findByCompositeKey(Movie.CompositeKey compositeKey);
 
+    List<Movie> findByGenre(String genre);
+
 }

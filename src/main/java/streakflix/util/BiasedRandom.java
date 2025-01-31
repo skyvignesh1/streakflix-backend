@@ -53,4 +53,11 @@ public class BiasedRandom {
         }
         return r;
     }
+
+    public int getRandomNumber(int range){
+        int r = random.nextInt(range) + 1;
+        return r;
+    }
+
+
 }

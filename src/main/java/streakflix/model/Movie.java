@@ -27,6 +27,8 @@ public class Movie {
     private String movieDescription;
     private String backDropURL;
 
+    private String genre;
+
     @Data
     @AllArgsConstructor
     public static class CompositeKey implements Serializable {

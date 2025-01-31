@@ -6,10 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import streakflix.model.FriendRequest;
-import streakflix.model.Movie;
-import streakflix.model.OTTDetails;
-import streakflix.model.User;
+import streakflix.model.*;
 import streakflix.repository.MovieRepository;
 import streakflix.service.StreakFlixService;
 import streakflix.util.BiasedRandom;
@@ -229,55 +226,102 @@ public class StreakFlixController {
         }
     }
 
-    @Autowired
-    BiasedRandom randomBias;
-
-    @PostMapping("/addMovieMetaDataToMongoDb")
-    public void receiveInfo(@RequestBody Movie movie){
-        try{
-
-            movie.setCompositeKey(new Movie.CompositeKey(String.valueOf(movie.getCompositeKey().getMovieId()), String.valueOf(randomBias.getOTTRandomPlatform(0))));
-            movie.setStreakCount(randomBias.getRandom());
-            movie.setMovieName(movie.getMovieName());
-            movieRepository.save(movie);
-
-            boolean shouldPresentInMultipleOttPlatforms = randomBias.biasedFalse();
-            if(shouldPresentInMultipleOttPlatforms){
-                movie.setCompositeKey(new Movie.CompositeKey(String.valueOf(movie.getCompositeKey().getMovieId()), String.valueOf(randomBias.getOTTRandomPlatform(Integer.parseInt(movie.getCompositeKey().getPlatform())))));
-                movie.setStreakCount(randomBias.getRandom());
-                movie.setMovieName(movie.getMovieName());
-                movieRepository.save(movie);
-            }
-        }catch (Exception exp){
-            System.out.println(exp.getMessage());
-        }
-    }
-
-    @GetMapping("/getMovieDetails")
-    public Movie getMovieDetails(@RequestParam("movieId") String movieId) throws Exception {
-        try {
-            return service.getMovieDetails(movieId);
-        }catch (Exception e){
-            return new Movie();
-        }
-    }
-    @GetMapping("/pullAllMoviesFromMongoDb")
-    public List<Movie> pullMoviesFromMongoDb(){
-        return service.pullAllMoviesFromMongoDb();
-    }
-
     @GetMapping("/pullAllOtt")
-    public List<OTTDetails> getAllOTTs(){
-        return service.pullAllOtt();
+    public ResponseEntity<?> getAllOTTs(@RequestHeader("Authorization") String authorizationHeader){
+        log.info("Received request to list all pending requests");
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            log.debug("Extracted token: {}", token);
+            String username = jwtUtil.extractUsername(token);
+            log.debug("Extracted username from token: {}", username);
+            if (jwtUtil.validateToken(token, username)) {
+                log.info("Token is valid for username: {}", username);
+                return new ResponseEntity<>(service.pullAllOtt(), HttpStatus.OK);
+            } else {
+                log.warn("Invalid session for token: {}", token);
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            log.error("Exception occurred while listing all pending requests", e);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+
     }
     @GetMapping("/pullAllMoviesFromMongoDbByPlatform")
-    public List<Movie> pullAllMoviesFromMongoDbByPlatform(@RequestParam(name = "platform") String platform){
-        return service.pullAllMoviesFromMongoDbByPlatform(platform);
+    public ResponseEntity<?> pullAllMoviesFromMongoDbByPlatform(@RequestParam(name = "platform") String platform, @RequestHeader("Authorization") String authorizationHeader){
+        log.info("Received request to list all pending requests");
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            log.debug("Extracted token: {}", token);
+            String username = jwtUtil.extractUsername(token);
+            log.debug("Extracted username from token: {}", username);
+            if (jwtUtil.validateToken(token, username)) {
+                log.info("Token is valid for username: {}", username);
+                return new ResponseEntity<>(service.pullAllMoviesFromMongoDbByPlatform(platform), HttpStatus.OK);
+            } else {
+                log.warn("Invalid session for token: {}", token);
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            log.error("Exception occurred while listing all pending requests", e);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping("/searchMoviesFromMongoDb")
-    public List<Movie> searchMoviesFromMongoDb(@RequestParam(name = "keyword") String keyword){
-        return service.searchMoviesFromMongoDb(keyword);
+    public ResponseEntity<?> searchMoviesFromMongoDb(@RequestParam(name = "keyword") String keyword, @RequestHeader("Authorization") String authorizationHeader){
+        log.info("Received request to list all pending requests");
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            log.debug("Extracted token: {}", token);
+            String username = jwtUtil.extractUsername(token);
+            log.debug("Extracted username from token: {}", username);
+            if (jwtUtil.validateToken(token, username)) {
+                log.info("Token is valid for username: {}", username);
+                return new ResponseEntity<>(service.searchMoviesFromMongoDb(keyword), HttpStatus.OK);
+            } else {
+                log.warn("Invalid session for token: {}", token);
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            log.error("Exception occurred while listing all pending requests", e);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
+
+    @GetMapping("/getBannerSrcImg")
+    public ResponseEntity<String> getBannerSrcImg(@RequestHeader("Authorization") String authorizationHeader){
+
+        try {
+            String token = authorizationHeader.replace("Bearer ", "");
+            log.debug("Extracted token: {}", token);
+            String username = jwtUtil.extractUsername(token);
+            log.debug("Extracted username from token: {}", username);
+            if (jwtUtil.validateToken(token, username)) {
+                log.info("Token is valid for username: {}", username);
+                return new ResponseEntity<>(service.getBannerSrcImg(username), HttpStatus.OK);
+            } else {
+                log.warn("Invalid session for token: {}", token);
+                return new ResponseEntity<>("Invalid session", HttpStatus.BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            log.error("Exception occurred while listing all pending requests", e);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PutMapping("/addUserGenre")
+    public void addUserGenre(@RequestHeader("Authorization") String Authorization, @RequestBody AddGenre addGenre){
+
+        String token = Authorization.replace("Bearer ", "");
+        String username = jwtUtil.extractUsername(token);
+        if (jwtUtil.validateToken(token, username)) {
+            service.addGenreToUser(addGenre, username);
+        }
+    }
+
+
+
+
 }
 

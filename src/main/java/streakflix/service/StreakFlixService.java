@@ -10,11 +10,9 @@ import streakflix.repository.MovieRepository;
 import streakflix.repository.OttRepository;
 import streakflix.repository.StreakRepository;
 import streakflix.repository.UserRepository;
+import streakflix.util.BiasedRandom;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -313,5 +311,57 @@ public class StreakFlixService {
     public List<Movie> searchMoviesFromMongoDb(String keyword) {
         return movieRepository.findByMovieNameOrderByStreakCountDesc(keyword);
     }
+//
+//    public void updateGenre(String movieId, String genre) {
+//        List<Movie> movies = movieRepository.findByCompositeKeyMovieId(movieId);
+//
+//        for(Movie movie : movies){
+//            movie.setGenre(genre);
+//            movieRepository.save(movie);
+//        }
+//    }
+
+    @Autowired
+    BiasedRandom biasedRandom;
+
+    public String getBannerSrcImg(String userName){
+        User user = userRepository.findByUsername(userName).orElseThrow();
+        if(user.getUserGenres() == null){
+            return movieRepository.findByGenre("Action").get(0).getMoviePosterURL();
+        }
+
+
+        List<Movie> movies = new ArrayList<>();
+        for(String keys : user.getUserGenres()){
+            movies.addAll(movieRepository.findByGenre(keys));
+        }
+
+        int totalSize = movies.size();
+        int r = biasedRandom.getRandomNumber(totalSize);
+        return movies.get(r).getMoviePosterURL();
+    }
+
+public void addGenreToUser(AddGenre addGenre, String username){
+
+    User user2 = userRepository.findByUsername(username).orElseThrow();
+    if(user2.getUserGenres() == null)
+        user2.setUserGenres(new ArrayList<>());
+    else
+        user2.getUserGenres().clear();
+
+    List<String> genres = addGenre.getGenre();
+    List<String> resultGenres;
+    if (genres.contains("Animation")) {
+        resultGenres = genres.stream()
+                .filter(genre -> genre.equals("Animation"))
+                .collect(Collectors.toList());
+    } else {
+        resultGenres = new ArrayList<>(genres);
+    }
+
+    user2.setUserGenres(resultGenres.stream().filter(r -> !r.equalsIgnoreCase("Action") && !r.equalsIgnoreCase("Adventure")).toList());
+    userRepository.save(user2);
+}
+
 
 }

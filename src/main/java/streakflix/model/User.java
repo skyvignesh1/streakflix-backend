@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Data
@@ -23,6 +24,7 @@ public class User {
     private String streak;
     private List<FriendList> friendList = new ArrayList<>();
     private String authorizationToken;
+    private List<String> userGenres;
 
     private String status;
     private List<WatchDetails> watchDetails = new ArrayList<>();
