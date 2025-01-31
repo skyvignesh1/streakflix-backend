@@ -55,8 +55,7 @@ public class BiasedRandom {
     }
 
     public int getRandomNumber(int range){
-        int r = random.nextInt(range) + 1;
-        return r;
+        return random.nextInt(range) + 1;
     }
 
 
