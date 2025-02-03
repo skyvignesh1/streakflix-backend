@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Variable declarations
-artifactName=streakflix-0.0.1-SNAPSHOT.jar
+artifactName=streakflix-backend-1.0.0-SNAPSHOT.jar
 containerName=streakflixbackendcontainer
 tagName=streakflixbackend
 containerPort=8081
