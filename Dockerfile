@@ -5,7 +5,7 @@ FROM amazoncorretto:17
 WORKDIR /app
 
 # Copy the executable JAR file to the container
-COPY target/streakflix-0.0.1-SNAPSHOT.jar app.jar
+COPY target/streakflix-backend-1.0.0-SNAPSHOT.jar app.jar
 
 # Expose the port the application runs on
 EXPOSE 8081
