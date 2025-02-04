@@ -11,7 +11,9 @@ import streakflix.repository.OttRepository;
 import streakflix.repository.StreakRepository;
 import streakflix.repository.UserRepository;
 import streakflix.util.BiasedRandom;
+import streakflix.util.Constants;
 
+import java.lang.constant.Constable;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -311,15 +313,6 @@ public class StreakFlixService {
     public List<Movie> searchMoviesFromMongoDb(String keyword) {
         return movieRepository.findByMovieNameOrderByStreakCountDesc(keyword);
     }
-//
-//    public void updateGenre(String movieId, String genre) {
-//        List<Movie> movies = movieRepository.findByCompositeKeyMovieId(movieId);
-//
-//        for(Movie movie : movies){
-//            movie.setGenre(genre);
-//            movieRepository.save(movie);
-//        }
-//    }
 
     @Autowired
     BiasedRandom biasedRandom;
@@ -327,16 +320,33 @@ public class StreakFlixService {
     public String getBannerSrcImg(String userName){
 
         User user = userRepository.findByUsername(userName).orElseThrow();
+        if(user.getUserGenres() == null || user.getUserGenres().isEmpty()){
+            user.setUserGenres(new HashMap<>());
+            return defaultBanner();
+        }
 
-        if(user.getUserGenres() == null){
+        int maxValue = Collections.max(user.getUserGenres().values());
+        List<String> sortedKeys = user.getUserGenres().entrySet().stream()
+                .filter(entry -> entry.getValue() == maxValue)
+                .sorted((entry1, entry2) -> {
+
+                    if (entry1.getKey().equals("Action")) return 1;
+                    if (entry2.getKey().equals("Action")) return -1;
+
+                    if (entry1.getKey().equals("Adventure")) return 1;
+                    if (entry2.getKey().equals("Adventure")) return -1;
+
+                    return entry1.getKey().compareTo(entry2.getKey());
+                })
+                .map(Map.Entry::getKey)
+                .toList();
+
+        if(sortedKeys.isEmpty())
             return defaultBanner();
-        }
+
         List<Movie> movies = new ArrayList<>();
-        for(String keys : user.getUserGenres()){
+        for(String keys : sortedKeys){
             movies.addAll(movieRepository.findByGenre(keys));
-        }
-        if(movies.isEmpty()){
-            return defaultBanner();
         }
 
         int totalSize = movies.size();
@@ -354,27 +364,22 @@ public class StreakFlixService {
         return movies.get(r-1).getMoviePosterURL();
     }
 
-    public void addGenreToUser(AddGenre addGenre, String username){
+public void addGenreToUser(AddGenre addGenre, String username){
 
-        User user2 = userRepository.findByUsername(username).orElseThrow();
-        if(user2.getUserGenres() == null)
-            user2.setUserGenres(new ArrayList<>());
+    User user2 = userRepository.findByUsername(username).orElseThrow();
+    if(user2.getUserGenres() == null)
+        user2.setUserGenres(new HashMap<>());
+
+    for(String genre : addGenre.getGenre()) {
+        Integer points = user2.getUserGenres().get(genre);
+
+        if (points == null || points == 0)
+            user2.getUserGenres().put(genre, 1);
         else
-            user2.getUserGenres().clear();
-
-        List<String> genres = addGenre.getGenre();
-        List<String> resultGenres;
-        if (genres.contains("Animation")) {
-            resultGenres = genres.stream()
-                    .filter(genre -> genre.equals("Animation"))
-                    .collect(Collectors.toList());
-        } else {
-            resultGenres = new ArrayList<>(genres);
-        }
-
-        user2.setUserGenres(resultGenres.stream().filter(r -> !r.equalsIgnoreCase("Documentary")).toList());
-        userRepository.save(user2);
+            user2.getUserGenres().put(genre, points + 1);
     }
+    userRepository.save(user2);
+}
 
 
 }

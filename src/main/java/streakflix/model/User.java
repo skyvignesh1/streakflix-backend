@@ -24,7 +24,7 @@ public class User {
     private String streak;
     private List<FriendList> friendList = new ArrayList<>();
     private String authorizationToken;
-    private List<String> userGenres;
+    private HashMap<String, Integer> userGenres = new HashMap<>();
 
     private String status;
     private List<WatchDetails> watchDetails = new ArrayList<>();
