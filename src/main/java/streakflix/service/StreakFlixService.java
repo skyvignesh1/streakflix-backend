@@ -18,6 +18,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static streakflix.util.Constants.GENRE_MAP;
+
 @Slf4j
 @Service
 public class StreakFlixService {
@@ -325,9 +327,9 @@ public class StreakFlixService {
             return defaultBanner();
         }
 
-        int maxValue = Collections.max(user.getUserGenres().values());
+        Double maxValue = Collections.max(user.getUserGenres().values());
         List<String> sortedKeys = user.getUserGenres().entrySet().stream()
-                .filter(entry -> entry.getValue() == maxValue)
+                .filter(entry -> Objects.equals(entry.getValue(), maxValue))
                 .sorted((entry1, entry2) -> {
 
                     if (entry1.getKey().equals("Action")) return 1;
@@ -364,22 +366,60 @@ public class StreakFlixService {
         return movies.get(r-1).getMoviePosterURL();
     }
 
-public void addGenreToUser(AddGenre addGenre, String username){
+    public void addGenreToUser(AddGenre addGenre, String username){
 
-    User user2 = userRepository.findByUsername(username).orElseThrow();
-    if(user2.getUserGenres() == null)
-        user2.setUserGenres(new HashMap<>());
+        User user2 = userRepository.findByUsername(username).orElseThrow();
+        if(user2.getUserGenres() == null)
+            user2.setUserGenres(new HashMap<>());
 
-    for(String genre : addGenre.getGenre()) {
-        Integer points = user2.getUserGenres().get(genre);
+        for(String genre : addGenre.getGenre()) {
+            Double points = user2.getUserGenres().get(genre);
 
-        if (points == null || points == 0)
-            user2.getUserGenres().put(genre, 1);
-        else
-            user2.getUserGenres().put(genre, points + 1);
+            double unit;
+            if(genre.equalsIgnoreCase("Action") || genre.equalsIgnoreCase("Adventure"))
+                unit = 0.1;
+            else if(genre.equalsIgnoreCase("Animation"))
+                unit = 2.0;
+            else
+                unit = 1.0;
+
+            if (points == null || points == 0)
+                user2.getUserGenres().put(genre, unit);
+            else
+                user2.getUserGenres().put(genre, points + unit);
+
+        }
+        userRepository.save(user2);
     }
-    userRepository.save(user2);
-}
+
+    public void addMovies(Movie movie){
+
+        List<Movie> list = movieRepository.findByCompositeKeyMovieId(movie.getCompositeKey().getMovieId());
+        if(!list.isEmpty())
+            return;
+
+        List<String> genres = movie.getGenre();
+        List<String> genreNames = genres.stream()
+                .map(GENRE_MAP::get)
+                .filter(Objects::nonNull)
+                .toList();
+
+        movie.setGenre(genreNames);
+        boolean shouldPresentInMultipleOtts = biasedRandom.biasedFalse();
+        int platform = biasedRandom.getOTTRandomPlatform(0);
+        movie.setCompositeKey( new Movie.CompositeKey(movie.getCompositeKey().getMovieId(), String.valueOf(platform)));
+        movie.setActualDuration(10);
+
+        movieRepository.save(movie);
+        if(shouldPresentInMultipleOtts){
+            platform = biasedRandom.getOTTRandomPlatform(platform);
+            movie.setCompositeKey( new Movie.CompositeKey(movie.getCompositeKey().getMovieId(), String.valueOf(platform)));
+            int streak = biasedRandom.getRandom();
+            movie.setStreakCount(streak);
+            movieRepository.save(movie);
+         }
+
+    }
 
 
 }
