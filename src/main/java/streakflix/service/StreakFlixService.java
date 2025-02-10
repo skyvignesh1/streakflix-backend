@@ -378,7 +378,7 @@ public class StreakFlixService {
             double unit;
             if(genre.equalsIgnoreCase("Action") || genre.equalsIgnoreCase("Adventure"))
                 unit = 0.1;
-            else if(genre.equalsIgnoreCase("Animation"))
+            else if(genre.equalsIgnoreCase("Animation") || genre.equalsIgnoreCase("Chinese"))
                 unit = 2.0;
             else
                 unit = 1.0;

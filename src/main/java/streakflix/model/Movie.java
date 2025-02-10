@@ -29,6 +29,7 @@ public class Movie {
     private String backDropURL;
 
     private List<String> genre;
+    private String language = "English";
 
     @Data
     @AllArgsConstructor

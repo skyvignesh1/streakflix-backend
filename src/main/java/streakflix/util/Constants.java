@@ -28,6 +28,7 @@ public class Constants {
         tempMap.put("53", "Thriller");
         tempMap.put("10752", "War");
         tempMap.put("37", "Western");
+        tempMap.put("1111", "Chinese");
 
         // Make the map unmodifiable to enforce immutability
         GENRE_MAP = Collections.unmodifiableMap(tempMap);
