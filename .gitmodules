@@ -1,0 +1,4 @@
+[submodule "src/main/streakflix-frontend"]
+	path = src/main/streakflix-frontend
+	url = https://github.com/skyvignesh1/streakflix-frontend.git
+	branch = lab-week-v2

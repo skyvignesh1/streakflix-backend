@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 @Document(collection = "movies")
@@ -26,6 +27,9 @@ public class Movie {
     private String moviePosterURL;
     private String movieDescription;
     private String backDropURL;
+
+    private List<String> genre;
+    private String language = "English";
 
     @Data
     @AllArgsConstructor

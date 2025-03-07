@@ -10,13 +10,15 @@ import streakflix.repository.MovieRepository;
 import streakflix.repository.OttRepository;
 import streakflix.repository.StreakRepository;
 import streakflix.repository.UserRepository;
+import streakflix.util.BiasedRandom;
+import streakflix.util.Constants;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.lang.constant.Constable;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static streakflix.util.Constants.GENRE_MAP;
 
 @Slf4j
 @Service
@@ -313,5 +315,111 @@ public class StreakFlixService {
     public List<Movie> searchMoviesFromMongoDb(String keyword) {
         return movieRepository.findByMovieNameOrderByStreakCountDesc(keyword);
     }
+
+    @Autowired
+    BiasedRandom biasedRandom;
+
+    public String getBannerSrcImg(String userName){
+
+        User user = userRepository.findByUsername(userName).orElseThrow();
+        if(user.getUserGenres() == null || user.getUserGenres().isEmpty()){
+            user.setUserGenres(new HashMap<>());
+            return defaultBanner();
+        }
+
+        Double maxValue = Collections.max(user.getUserGenres().values());
+        List<String> sortedKeys = user.getUserGenres().entrySet().stream()
+                .filter(entry -> Objects.equals(entry.getValue(), maxValue))
+                .sorted((entry1, entry2) -> {
+
+                    if (entry1.getKey().equals("Action")) return 1;
+                    if (entry2.getKey().equals("Action")) return -1;
+
+                    if (entry1.getKey().equals("Adventure")) return 1;
+                    if (entry2.getKey().equals("Adventure")) return -1;
+
+                    return entry1.getKey().compareTo(entry2.getKey());
+                })
+                .map(Map.Entry::getKey)
+                .toList();
+
+        if(sortedKeys.isEmpty())
+            return defaultBanner();
+
+        List<Movie> movies = new ArrayList<>();
+        for(String keys : sortedKeys){
+            movies.addAll(movieRepository.findByGenre(keys));
+        }
+
+        int totalSize = movies.size();
+        int r = biasedRandom.getRandomNumber(totalSize);
+        return movies.get(r-1).getMoviePosterURL();
+    }
+
+
+    // Default Banner from Action genre movies
+    private String defaultBanner(){
+
+        var movies = movieRepository.findByGenre("Action");
+        int r = biasedRandom.getRandomNumber(movies.size());
+
+        return movies.get(r-1).getMoviePosterURL();
+    }
+
+    public void addGenreToUser(AddGenre addGenre, String username){
+
+        User user2 = userRepository.findByUsername(username).orElseThrow();
+        if(user2.getUserGenres() == null)
+            user2.setUserGenres(new HashMap<>());
+
+        for(String genre : addGenre.getGenre()) {
+            Double points = user2.getUserGenres().get(genre);
+
+            double unit;
+            if(genre.equalsIgnoreCase("Action") || genre.equalsIgnoreCase("Adventure"))
+                unit = 0.1;
+            else if(genre.equalsIgnoreCase("Animation") || genre.equalsIgnoreCase("Chinese"))
+                unit = 2.0;
+            else
+                unit = 1.0;
+
+            if (points == null || points == 0)
+                user2.getUserGenres().put(genre, unit);
+            else
+                user2.getUserGenres().put(genre, points + unit);
+
+        }
+        userRepository.save(user2);
+    }
+
+    public void addMovies(Movie movie){
+
+        List<Movie> list = movieRepository.findByCompositeKeyMovieId(movie.getCompositeKey().getMovieId());
+        if(!list.isEmpty())
+            return;
+
+        List<String> genres = movie.getGenre();
+        List<String> genreNames = genres.stream()
+                .map(GENRE_MAP::get)
+                .filter(Objects::nonNull)
+                .toList();
+
+        movie.setGenre(genreNames);
+        boolean shouldPresentInMultipleOtts = biasedRandom.biasedFalse();
+        int platform = biasedRandom.getOTTRandomPlatform(0);
+        movie.setCompositeKey( new Movie.CompositeKey(movie.getCompositeKey().getMovieId(), String.valueOf(platform)));
+        movie.setActualDuration(10);
+
+        movieRepository.save(movie);
+        if(shouldPresentInMultipleOtts){
+            platform = biasedRandom.getOTTRandomPlatform(platform);
+            movie.setCompositeKey( new Movie.CompositeKey(movie.getCompositeKey().getMovieId(), String.valueOf(platform)));
+            int streak = biasedRandom.getRandom();
+            movie.setStreakCount(streak);
+            movieRepository.save(movie);
+         }
+
+    }
+
 
 }
